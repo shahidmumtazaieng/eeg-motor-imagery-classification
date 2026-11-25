@@ -1,18 +1,21 @@
-# MNE data downloads
+# EEGBCI downloads and generated outputs
 mne_data/
+data/
+results/*.csv
+results/*.json
+results/figures/*
+!results/figures/.gitkeep
 *.fif
-
-# Notebook outputs (large binaries)
-figures/
-reports/
+*.npy
+*.edf
 
 # Python
 __pycache__/
-*.pyc
-*.pyo
+.pytest_cache/
 .ipynb_checkpoints/
 
-# Environment
+# Environments and secrets
 .env
+.venv/
 venv/
 env/

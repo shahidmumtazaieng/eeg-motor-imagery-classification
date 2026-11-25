@@ -1,48 +1,120 @@
-# EEG Motor Imagery BCI
+# EEG Motor Imagery Classification
 
-A complete end-to-end pipeline for EEG-based motor imagery classification using the [PhysioNet EEGBCI dataset](https://physionet.org/content/eegmmidb/1.0.0/).
+An end-to-end research project for decoding imagined left- versus right-hand
+movements from EEG using PhysioNet's EEG Motor Movement/Imagery Dataset
+(EEGBCI), MNE-Python, scikit-learn, and PyTorch.
 
-## Overview
+The project is organized as reusable Python code, runnable notebooks, tests,
+and an optional Streamlit demo. It compares classical EEG/ML baselines with a
+compact EEGNet-style CNN and reports both subject-dependent and
+subject-independent results.
 
-This project implements a Brain-Computer Interface (BCI) pipeline that classifies left vs. right hand motor imagery from EEG signals. It covers the full workflow from raw data loading to model evaluation.
+## Dataset and task
 
-## Notebooks
+The default experiment is **binary left- versus right-hand motor imagery**.
+It uses EEGBCI runs **4, 8, and 12**. Do not mix these with runs 6, 10, and 14:
+those runs represent imagined hands-versus-feet tasks, and the meanings of the
+T1/T2 event markers depend on the run paradigm.
 
-| Notebook | Description |
-|----------|-------------|
-| `01-loading-ipynb.ipynb` | Data loading from PhysioNet, electrode montage, event extraction |
-| `02-preprocessing-ipynb.ipynb` | Bandpass filtering, notch filter, ICA artifact removal, epoching |
-| `03-visualization-ipynb.ipynb` | PSD, topographic maps, ERD/ERS time-frequency analysis |
-| `04-augmentation-ipynb.ipynb` | Gaussian noise, amplitude scaling, and mixup augmentation |
-| `05-classification.ipynb` | CSP + LDA, SVM-RBF, cross-validation, confusion matrix, ROC curve |
+The dataset contains recordings from 109 participants, 64 EEG channels, and a
+160 Hz sampling rate. MNE downloads files on first use. The project keeps the
+dataset out of source control and does not bundle participant recordings.
 
-## Dataset
+## Repository layout
 
-- **Source:** PhysioNet EEG Motor Movement/Imagery Dataset (EEGBCI)
-- **Subjects:** 3 subjects (expandable)
-- **Runs:** 6 (real movement), 10 (imagery), 14 (imagery + rest)
-- **Channels:** 64 EEG electrodes (10-20 montage, 160 Hz)
-- **Classes:** Left hand (T1) vs. Right hand (T2)
+```text
+.
+├── app.py
+├── docs/
+│   └── methodology.md
+├── notebooks/
+│   ├── 01_data_exploration.ipynb
+│   ├── 02_eeg_preprocessing.ipynb
+│   ├── 03_signal_analysis.ipynb
+│   ├── 04_feature_extraction.ipynb
+│   ├── 05_classical_ml.ipynb
+│   └── 06_deep_learning.ipynb
+├── results/
+│   └── figures/
+├── src/
+│   ├── data.py
+│   ├── preprocessing.py
+│   ├── feature_extraction.py
+│   ├── models.py
+│   ├── evaluation.py
+│   └── train.py
+├── tests/
+└── requirements.txt
+```
 
-## Methods
-
-- **Preprocessing:** 1–40 Hz bandpass, 50 Hz notch, average reference, ICA
-- **Feature extraction:** Common Spatial Patterns (CSP, 6 components) + band power (delta/theta/alpha/beta/gamma) on C3, C4, Cz
-- **Classifiers:** CSP + LDA (standard BCI pipeline), SVM with RBF kernel
-- **Evaluation:** 5-fold stratified cross-validation, GroupKFold (anti-leakage), accuracy / F1 / AUC-ROC
+Previous tutorial notebooks are kept in `notebooks/archive/`; the new
+notebooks use the reusable modules above.
 
 ## Setup
 
+Python 3.10 or newer is recommended. From the repository root:
+
 ```bash
-pip install -r requirements.txt
+python -m venv .venv
+# Windows PowerShell:
+.venv\Scripts\Activate.ps1
+# macOS/Linux:
+# source .venv/bin/activate
+python -m pip install -r requirements.txt
 ```
 
-Then open the notebooks in order (01 → 05). The first run will automatically download the EEGBCI dataset via MNE.
+## Run the experiment
 
+Download and evaluate participants 1–5 (subject-independent GroupKFold plus
+within-subject stratified CV):
 
-## Requirements
+```bash
+python -m src.train --subjects 1 2 3 4 5
+```
 
-- Python 3.10+
-- MNE-Python 1.5+
-- scikit-learn 1.3+
-- See `requirements.txt` for full list
+Results are written to `results/`. Add `--skip-eegnet` for a faster run that
+omits deep learning. The default EEGNet training runs on CPU; its epoch count
+can be adjusted with `--eegnet-epochs`.
+
+To run the Streamlit demo:
+
+```bash
+streamlit run app.py
+```
+
+Select at least two participants for subject-independent evaluation. The
+application downloads data through MNE on first use; the first run may take a
+while.
+
+Run focused tests with:
+
+```bash
+python -m pytest
+```
+
+## Evaluation and interpretation
+
+- **Subject-dependent:** each participant's trials are split into stratified
+  folds. This measures performance when some labeled data from that person is
+  available during training.
+- **Subject-independent:** GroupKFold keeps every trial from a participant
+  together, so test participants are unseen during training.
+- **Models:** CSP+LDA on raw epochs, plus Logistic Regression, RBF-SVM, and
+  Random Forest on log band-power features. EEGNet is an optional raw-epoch
+  deep-learning baseline.
+- **Metrics:** accuracy, balanced accuracy, macro F1, and ROC AUC.
+
+Subject-independent performance is the more demanding deployment estimate.
+Scores depend on selected participants, preprocessing, and the small number of
+participants used. A research result should report participant-wise scores and
+uncertainty, not only one aggregate accuracy. This project is for research and
+education; it is not a medical device or a validated clinical system.
+
+See [docs/methodology.md](docs/methodology.md) for protocol choices, signal
+processing, validation design, and limitations.
+
+## Citation
+
+Please cite the EEG Motor Movement/Imagery Dataset and its original BCI2000
+publication when using these data. See the PhysioNet dataset page:
+https://physionet.org/content/eegmmidb/1.0.0/
