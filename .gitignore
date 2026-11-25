@@ -1,0 +1,18 @@
+# MNE data downloads
+mne_data/
+*.fif
+
+# Notebook outputs (large binaries)
+figures/
+reports/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# Environment
+.env
+venv/
+env/
